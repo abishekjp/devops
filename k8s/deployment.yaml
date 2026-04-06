@@ -1,0 +1,93 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 12: k8s/deployment.yaml
+# Phase 5 — Kubernetes Deployment
+# Hardened pod spec with security contexts, resource limits,
+# and health probes. IMAGE_TAG_PLACEHOLDER is replaced by
+# the CI/CD pipeline with the actual commit SHA.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: myapp-prod
+  labels:
+    app: myapp
+    environment: production
+spec:
+  # ── Replicas ──────────────────────────────────────────────
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: myapp
+
+  template:
+    metadata:
+      labels:
+        app: myapp
+        environment: production
+
+    spec:
+      # ── Pod Security Context ──────────────────────────────
+      # Ensures no container in this pod runs as root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+
+      containers:
+        - name: myapp
+          # Use the locally built Docker image and prevent pulling from Docker Hub
+          image: devsecops-demo:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+
+          # ── Container Security Context ────────────────────
+          # Defense in depth — restrict container capabilities
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          # ── Resource Limits ───────────────────────────────
+          # Prevents resource exhaustion attacks
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # ── Environment Variables ─────────────────────────
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+
+          # ── Liveness Probe ────────────────────────────────
+          # Restarts the container if /health stops responding
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # ── Readiness Probe ───────────────────────────────
+          # Removes pod from service until /health returns 200
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3

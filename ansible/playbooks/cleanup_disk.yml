@@ -1,0 +1,88 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 15: ansible/playbooks/cleanup_disk.yml
+# Phase 6 — Disk Cleanup Remediation Playbook
+# Triggered by AI auto-remediation when disk usage is high
+# Cleans old logs, temp files, and apt cache
+# Target: Ubuntu 22.04
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+- name: Disk Cleanup — Free Space on Target Host
+  hosts: "{{ target | default('webservers') }}"
+  become: yes
+
+  tasks:
+    # ── Record disk usage BEFORE cleanup ──────────────────────
+    - name: "Record disk usage before cleanup"
+      shell: df -h
+      register: disk_before
+      changed_when: false
+      check_mode: no
+
+    - name: "Show disk usage before"
+      debug:
+        msg: "{{ disk_before.stdout_lines }}"
+
+    # ── Clean old log files ──────────────────────────────────
+    - name: "Find log files older than 7 days and larger than 100MB"
+      find:
+        paths: /var/log
+        age: 7d
+        size: 100m
+        recurse: yes
+      register: old_logs
+
+    - name: "Delete old log files safely"
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_logs.files }}"
+      when:
+        - old_logs.files | length > 0
+        - item.size > 100000000
+
+    # ── Clean temp files ─────────────────────────────────────
+    - name: "Find temp files older than 3 days"
+      find:
+        paths: /tmp
+        age: 3d
+        recurse: yes
+      register: old_tmp
+
+    - name: "Delete old temp files"
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_tmp.files }}"
+      when: old_tmp.files | length > 0
+
+    # ── Clean apt cache ──────────────────────────────────────
+    - name: "Remove unused packages"
+      apt:
+        autoremove: yes
+
+    - name: "Clean apt cache"
+      apt:
+        autoclean: yes
+
+    # ── Record disk usage AFTER cleanup ──────────────────────
+    - name: "Record disk usage after cleanup"
+      shell: df -h
+      register: disk_after
+      changed_when: false
+      check_mode: no
+
+    # ── Log Action ───────────────────────────────────────────
+    - name: Log cleanup action
+      copy:
+        content: "Cleanup executed on {{ inventory_hostname }} at {{ ansible_date_time.iso8601 }}\n"
+        dest: /var/log/cleanup-log.txt
+        mode: '0644'
+
+    - name: "Show disk usage after"
+      debug:
+        msg: "{{ disk_after.stdout_lines }}"
+
+    # ── Summary ──────────────────────────────────────────────
+    - name: "Cleanup complete"
+      debug:
+        msg: "✅ Disk cleanup complete on {{ target | default('webservers') }}"

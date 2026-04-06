@@ -1,0 +1,23 @@
+{
+  "name": "devsecops-webapp",
+  "version": "1.0.0",
+  "description": "Secure web application for DevSecOps pipeline demonstration",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "jest --detectOpenHandles --forceExit --coverage",
+    "lint": "eslint app.js"
+  },
+  "keywords": ["devsecops", "security", "pipeline"],
+  "author": "URK23CS1218",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  }
+}

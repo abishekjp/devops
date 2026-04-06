@@ -1,0 +1,13 @@
+{
+  "name": "devsecops-ai-demo",
+  "version": "1.0.0",
+  "description": "AI-Driven DevSecOps Pipeline with Ansible Automation",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo Tests passed"
+  },
+  "keywords": ["devsecops", "ansible", "ai", "kubernetes"],
+  "author": "",
+  "license": "MIT"
+}

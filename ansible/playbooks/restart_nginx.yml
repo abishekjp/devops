@@ -1,0 +1,84 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 18: ansible/playbooks/restart_nginx.yml
+# Phase 6 — Nginx Restart Remediation Playbook
+# Triggered by AI auto-remediation for nginx_down alerts
+# Tests config before restart, falls back to backup if invalid
+# Target: Ubuntu 22.04
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+- name: Nginx Restart with Config Validation (Safe)
+  hosts: "{{ target | default('webservers') }}"
+  become: yes
+
+  tasks:
+
+    # ── Ensure nginx is installed ───────────────────────────
+    - name: Ensure nginx is installed
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    # ── Check nginx service status ──────────────────────────
+    - name: Check nginx service status
+      service_facts:
+
+    - name: Show nginx status
+      debug:
+        msg: "{{ ansible_facts.services['nginx.service'].state | default('unknown') }}"
+
+    # ── Test nginx configuration ────────────────────────────
+    - name: Test nginx configuration
+      command: nginx -t
+      register: config_test
+      ignore_errors: yes
+
+    # ── Restart if config is valid ──────────────────────────
+    - name: Restart nginx (valid config)
+      service:
+        name: nginx
+        state: restarted
+      when: config_test.rc == 0
+
+    # ── Check if backup exists ──────────────────────────────
+    - name: Check backup config exists
+      stat:
+        path: /etc/nginx/nginx.conf.bak
+      register: backup_file
+
+    # ── Restore backup if config invalid ────────────────────
+    - name: Restore backup config
+      copy:
+        src: /etc/nginx/nginx.conf.bak
+        dest: /etc/nginx/nginx.conf
+        remote_src: yes
+        backup: yes
+      when:
+        - config_test.rc != 0
+        - backup_file.stat.exists
+
+    - name: Restart nginx after restore
+      service:
+        name: nginx
+        state: restarted
+      when:
+        - config_test.rc != 0
+        - backup_file.stat.exists
+
+    # ── Health check ────────────────────────────────────────
+    - name: Verify nginx is responding
+      uri:
+        url: "http://localhost"
+        status_code: [200, 301, 302]
+        timeout: 10
+      register: health
+      ignore_errors: yes
+
+    - name: Nginx health result
+      debug:
+        msg: >
+          {{
+            "✅ Nginx is healthy"
+            if health.status in [200,301,302]
+            else "❌ Nginx not responding"
+          }}

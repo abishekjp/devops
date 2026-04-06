@@ -1,0 +1,97 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 14: ansible/post-deploy-hardening.yml
+# Phase 6 — Ansible Post-Deploy Hardening
+# Secures the server after deployment:
+# - SSH hardening (disable root login, password auth)
+# - UFW firewall (allow 22, 80, 443 only)
+# - fail2ban intrusion prevention
+# - Version tracking
+# Target: Ubuntu 22.04
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+- name: Post-Deploy Server Hardening (Safe & Production)
+  hosts: webservers
+  become: yes
+
+  vars:
+    app_version: "unknown"
+
+  tasks:
+
+    # ── Install required packages ───────────────────────────
+    - name: Install UFW and fail2ban
+      apt:
+        name:
+          - ufw
+          - fail2ban
+        state: present
+        update_cache: yes
+
+    # ── SSH Hardening ───────────────────────────────────────
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+      notify: Restart ssh
+
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: Restart ssh
+
+    # ── Firewall Configuration (SAFE ORDER) ─────────────────
+    - name: Allow SSH (port 22)
+      ufw:
+        rule: allow
+        port: '22'
+
+    - name: Allow HTTP (port 80)
+      ufw:
+        rule: allow
+        port: '80'
+
+    - name: Allow HTTPS (port 443)
+      ufw:
+        rule: allow
+        port: '443'
+
+    - name: Enable firewall
+      ufw:
+        state: enabled
+        policy: deny
+
+    # ── Intrusion Prevention ───────────────────────────────
+    - name: Enable fail2ban
+      service:
+        name: fail2ban
+        enabled: yes
+        state: started
+      notify: Restart fail2ban
+
+    # ── Version Tracking ───────────────────────────────────
+    - name: Write deployed app version
+      copy:
+        content: "{{ app_version }}"
+        dest: /etc/app-version
+        owner: root
+        group: root
+        mode: '0644'
+
+    # ── Verification ───────────────────────────────────────
+    - name: Hardening complete
+      debug:
+        msg: "✅ Server hardened — version {{ app_version }} secured"
+
+  handlers:
+    - name: Restart ssh
+      service:
+        name: ssh
+        state: restarted
+
+    - name: Restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted

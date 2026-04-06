@@ -1,0 +1,81 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 17: ansible/playbooks/kill_zombie_processes.yml
+# Phase 6 — High CPU Remediation Playbook
+# Triggered by AI auto-remediation for high_cpu alerts
+# Finds and kills processes consuming >80% CPU
+# Target: Ubuntu 22.04
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+- name: Kill Zombie / High CPU Processes (Safe Mode)
+  hosts: "{{ target | default('webservers') }}"
+  become: yes
+
+  vars:
+    cpu_threshold: 80
+    exclude_processes:
+      - "sshd"
+      - "kubelet"
+      - "docker"
+      - "containerd"
+      - "systemd"
+      - "init"
+
+  tasks:
+
+    # ── Find high CPU processes safely ──────────────────────
+    - name: Find high CPU processes
+      shell: |
+        ps -eo pid,comm,%cpu --sort=-%cpu | \
+        awk -v thresh={{ cpu_threshold }} '
+        NR>1 && $3>thresh {print $1, $2, $3}'
+      register: high_cpu_procs
+      changed_when: false
+
+    - name: Show processes
+      debug:
+        msg: "{{ high_cpu_procs.stdout_lines | default(['No high CPU processes found']) }}"
+
+    # ── Filter safe targets ─────────────────────────────────
+    - name: Filter non-critical processes
+      set_fact:
+        safe_pids: >-
+          {{
+            high_cpu_procs.stdout_lines
+            | map('split', ' ')
+            | rejectattr('1', 'in', exclude_processes)
+            | map(attribute='0')
+            | list
+          }}
+
+    - name: Show safe PIDs
+      debug:
+        var: safe_pids
+
+    # ── Graceful kill ───────────────────────────────────────
+    - name: Send SIGTERM
+      shell: "kill -TERM {{ item }}"
+      loop: "{{ safe_pids }}"
+      when: safe_pids | length > 0
+      ignore_errors: yes
+
+    - name: Wait for shutdown
+      pause:
+        seconds: 10
+      when: safe_pids | length > 0
+
+    # ── Force kill if needed ────────────────────────────────
+    - name: Send SIGKILL
+      shell: "kill -KILL {{ item }}"
+      loop: "{{ safe_pids }}"
+      when: safe_pids | length > 0
+      ignore_errors: yes
+
+    # ── Verify CPU usage ───────────────────────────────────
+    - name: Check CPU usage
+      shell: "top -bn1 | head -5"
+      register: cpu_after
+      changed_when: false
+
+    - name: CPU status after cleanup
+      debug:
+        msg: "{{ cpu_after.stdout_lines }}"

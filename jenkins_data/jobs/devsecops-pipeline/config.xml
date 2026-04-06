@@ -1,0 +1,49 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1571.vb_423c255d6d9">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4259.vf653c2b_8a_b_69">
+    <script>pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = &quot;devopslab1218/devsecops-webapp&quot;
+        KUBE_NAMESPACE = &quot;devsecops-app&quot;
+    }
+
+    stages {
+
+        stage(&apos;Build Docker Image&apos;) {
+            steps {
+                sh &apos;docker build -t $DOCKER_IMAGE:latest .&apos;
+            }
+        }
+
+        stage(&apos;Push to Docker Hub&apos;) {
+            steps {
+                sh &apos;docker push $DOCKER_IMAGE:latest&apos;
+            }
+        }
+
+        stage(&apos;Deploy to Kubernetes&apos;) {
+            steps {
+                sh &apos;kubectl set image deployment/devsecops-webapp webapp=$DOCKER_IMAGE:latest -n $KUBE_NAMESPACE&apos;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

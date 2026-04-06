@@ -1,0 +1,32 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 6: Dockerfile.vulnerable (INSECURE — pipeline fails)
+# Phase 3 — Security Scanning Demo
+# ⚠️  VIVA DEMO ONLY — intentionally insecure!
+# This Dockerfile uses the full Node.js image (hundreds of CVEs),
+# runs as root, includes dev dependencies, and has no health check.
+# Used to demonstrate the Trivy security gate BLOCKING the pipeline.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Full bloated image — NOT alpine, includes hundreds of known CVEs
+FROM node:18
+
+WORKDIR /app
+
+# Copy package files
+COPY app/package*.json ./
+
+# npm install includes dev dependencies — bad practice
+RUN npm install
+
+# Copy everything — no .dockerignore filtering
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# ⚠️  No USER directive — runs as root!
+# ⚠️  No HEALTHCHECK — no container health monitoring!
+# ⚠️  No multi-stage build — bloated final image!
+# ⚠️  No read-only filesystem — container writable!
+
+CMD ["node", "app/app.js"]

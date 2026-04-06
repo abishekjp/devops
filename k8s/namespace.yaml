@@ -1,0 +1,13 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FILE 11: k8s/namespace.yaml
+# Phase 5 — Kubernetes Namespace
+# Production namespace with Terraform-managed labels
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myapp-prod
+  labels:
+    environment: production
+    managed-by: terraform
+    project: devsecops-ai-demo
