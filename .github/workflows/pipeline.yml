@@ -38,7 +38,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=abishekjp_devops
-            -Dsonar.organization=abishekjp
+            -Dsonar.organization=abishek-j
             -Dsonar.host.url=https://sonarcloud.io
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
