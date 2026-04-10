@@ -37,8 +37,8 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
-            -Dsonar.projectKey=URK23CS1218_devopsia3
-            -Dsonar.organization=jeremiah
+            -Dsonar.projectKey=abishekjp_devops
+            -Dsonar.organization=abishekjp
             -Dsonar.host.url=https://sonarcloud.io
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
