@@ -76,3 +76,13 @@ timestamp,host,alert_type,action,urgency,safe_to_automate,dry_run,success
 2026-04-07T02:31:50.057082,web-server-01,high_cpu,high_cpu,high,True,True,True
 2026-04-07T02:31:56.507877,k8s-node-01,high_memory,high_memory,high,True,True,True
 2026-04-07T02:32:02.270746,web-server-02,service_down,service_down,critical,True,True,True
+2026-04-10T19:52:24.336807,web-server-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:52:28.349697,web-server-02,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:52:32.365759,web-server-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:52:36.370053,k8s-node-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:52:40.386059,web-server-02,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:54:38.439719,web-server-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:54:43.068321,web-server-02,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:54:47.670141,web-server-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:54:52.461411,k8s-node-01,escalate_to_human,escalate_to_human,high,False,True,False
+2026-04-10T19:54:57.297066,web-server-02,escalate_to_human,escalate_to_human,high,False,True,False
