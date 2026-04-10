@@ -71,3 +71,8 @@ timestamp,host,alert_type,action,urgency,safe_to_automate,dry_run,success
 2026-04-07T01:35:11.806578,web-server-01,high_cpu,high_cpu,high,True,True,True
 2026-04-07T01:35:18.476387,k8s-node-01,high_memory,high_memory,critical,True,True,True
 2026-04-07T01:35:24.826184,web-server-02,service_down,service_down,critical,True,True,True
+2026-04-07T02:31:38.215171,web-server-01,disk_full,disk_full,high,True,True,True
+2026-04-07T02:31:44.035862,web-server-02,nginx_down,nginx_down,critical,True,True,True
+2026-04-07T02:31:50.057082,web-server-01,high_cpu,high_cpu,high,True,True,True
+2026-04-07T02:31:56.507877,k8s-node-01,high_memory,high_memory,high,True,True,True
+2026-04-07T02:32:02.270746,web-server-02,service_down,service_down,critical,True,True,True

@@ -87,7 +87,7 @@ describe('DevSecOps Web Application', () => {
         .set('Accept', 'text/html');
       expect(res.statusCode).toBe(200);
       expect(res.text).toContain('<!DOCTYPE html>');
-      expect(res.text).toContain('Secured Data Payload');
+      expect(res.text).toContain('Secure Data Payload');
     });
   });
 

@@ -4,11 +4,12 @@
 
 ## 🚀 Final Production-Ready Status
 The system is currently fully operational and **Viva-Ready**:
-- **🐳 Docker Hub**: [devopslab1218/devopsia3](https://hub.docker.com/r/devopslab1218/devopsia3)
+- **🐳 Docker Hub**: [devopslab1218/myapp](https://hub.docker.com/r/devopslab1218/myapp)
 - **🐙 GitHub Repo**: [URK23CS1218/devopsia3](https://github.com/URK23CS1218/devopsia3)
-- **🔗 Local Access**: [http://localhost:30007](http://localhost:30007)
+- **🔗 Local Access**: [http://127.0.0.1:61293](http://127.0.0.1:61293)
 - **🧠 AI Remediator**: Active simulation engine with 83.2% time reduction.
 - **🛡️ Security**: Hardened Alpine container with non-root user and read-only filesystem.
+- **🎨 UI/UX**: Dark cyber/terminal aesthetic dashboard with live monitoring.
 
 ---
 
@@ -155,14 +156,16 @@ python ai/metrics_collector.py
 → **Time Savings**: ~6.7 minutes saved per incident
 → See `research_metrics.txt` for the full data breakdown.
 
-### Step 6: Local Deployment (Docker)
+### Step 6: Local Deployment (Minikube & Docker)
 
 ```bash
-docker build -t devsecops-safe-app:latest .
-docker run -d -p 3000:3000 --name devsecops-app devsecops-safe-app:latest
+docker build -t devopslab1218/myapp:latest .
+minikube image load devopslab1218/myapp:latest
+kubectl apply -f k8s/
+minikube service myapp-service -n myapp-prod --url
 ```
-→ Access at: http://localhost:3000
-→ Verify health check at: http://localhost:3000/health
+→ Access at the displayed minikube URL (e.g., http://127.0.0.1:61293)
+→ Verify health check at: /health
 
 ---
 

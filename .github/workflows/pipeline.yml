@@ -1,4 +1,4 @@
-name: 🚀 DevSecOps AI Pipeline (Final)
+name: 🚀 DevSecOps AI Pipeline
 
 on:
   push:
@@ -10,14 +10,14 @@ env:
 jobs:
 
 # ─────────────────────────────
-# 🔍 SONARCLOUD SAST
+# 🔍 1. SONAR SCAN
 # ─────────────────────────────
-  sonarcloud-scan:
-    name: "🔍 SonarCloud Scan"
+  sonar:
+    name: 🔍 SonarCloud Scan
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout Code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -25,15 +25,15 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
-      - name: 📦 Install Dependencies
-        run: npm ci || npm install
+      - name: 📦 Install
+        run: npm install
 
-      - name: 🧪 Run Tests
+      - name: 🧪 Test
         run: npm test || true
 
-      - name: 🔍 Run Sonar Scan
+      - name: 🔍 Sonar Scan
         uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
@@ -44,68 +44,66 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 # ─────────────────────────────
-# 🐳 DOCKER BUILD & PUSH
+# 🐳 2. DOCKER BUILD & PUSH
 # ─────────────────────────────
-  docker-build:
-    name: "🐳 Docker Build & Push"
-    needs: sonarcloud-scan
+  docker:
+    name: 🐳 Docker Build & Push
+    needs: sonar
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔐 Docker Login
+      - name: 🔐 Login DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🏗️ Build & Push Image
+      - name: 🏗️ Build Image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
-          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
+
+      - name: 📤 Push Image
+        run: |
+          docker push $IMAGE_NAME:${{ github.sha }}
 
 # ─────────────────────────────
-# 🛡️ TRIVY SCAN (FIXED)
+# 🛡️ 3. TRIVY SCAN
 # ─────────────────────────────
-  trivy-scan:
-    name: "🛡️ Trivy Scan"
-    needs: docker-build
+  trivy:
+    name: 🛡️ Trivy Security Scan
+    needs: docker
     runs-on: ubuntu-latest
 
     steps:
       - name: 📦 Pull Image
         run: docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: 🔍 Run Trivy Scan
+      - name: 🔍 Scan Image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}   # ✅ FIX
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: 0
-          scanners: vuln
 
 # ─────────────────────────────
-# 🚫 SECURITY GATE
+# 🚫 4. SECURITY GATE
 # ─────────────────────────────
   security-gate:
-    name: "🚫 Security Gate"
-    needs: trivy-scan
+    name: 🚫 Security Gate
+    needs: trivy
     runs-on: ubuntu-latest
 
     steps:
-      - run: echo "✅ Security Gate Passed"
+      - run: echo "✅ Security checks passed"
 
 # ─────────────────────────────
-# 🏗️ TERRAFORM
+# 🏗️ 5. TERRAFORM
 # ─────────────────────────────
   terraform:
-    name: "🏗️ Terraform"
+    name: 🏗️ Terraform Provision
     needs: security-gate
     runs-on: ubuntu-latest
 
@@ -114,11 +112,11 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      - name: ⚙️ Terraform Init
+      - name: ⚙️ Init
         working-directory: terraform
         run: terraform init
 
-      - name: 📊 Terraform Plan
+      - name: 📊 Plan
         working-directory: terraform
         run: |
           terraform plan \
@@ -127,35 +125,34 @@ jobs:
             || echo "⚠️ Skipped"
 
 # ─────────────────────────────
-# 🚀 KUBERNETES
+# 🚀 6. KUBERNETES (SAFE SKIP)
 # ─────────────────────────────
   deploy:
-    name: "🚀 Kubernetes Deploy"
+    name: 🚀 Kubernetes Deploy
     needs: terraform
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📥 Setup kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config || true
-
       - name: 🔄 Replace Image Tag
         run: |
           sed -i "s|IMAGE_TAG_PLACEHOLDER|${{ github.sha }}|g" k8s/deployment.yaml
 
-      - name: 🚀 Deploy App
+      - name: 🚀 Deploy (Skip if no cluster)
         run: |
-          kubectl cluster-info || echo "⚠️ No cluster"
-          kubectl apply -f k8s/ --validate=false || echo "⚠️ Skipped"
+          if kubectl cluster-info >/dev/null 2>&1; then
+            echo "✅ Cluster connected"
+            kubectl apply -f k8s/
+          else
+            echo "⚠️ No cluster (local only) → skipping"
+          fi
 
 # ─────────────────────────────
-# 🔐 ANSIBLE
+# 🔐 7. ANSIBLE
 # ─────────────────────────────
   ansible:
-    name: "🔐 Ansible Hardening"
+    name: 🔐 Ansible Hardening
     needs: deploy
     runs-on: ubuntu-latest
 
